@@ -7,7 +7,7 @@ char identifier = '*';
 int colors[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-boolean state[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+boolean states[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 /* Shiftbrite Properties
@@ -180,13 +180,21 @@ int getBlueFromInt(int c)
 
 boolean checkSerial()
 { 
-  if(Serial.available() >= 193) 
+  if(Serial.available() >= 129) 
   {
     int firstByte = Serial.read();
 
     if(firstByte == identifier) 
     {
-      // read all the serial: Serial.read();
+      int i = 0;
+      
+      while(Serial.available() > 0)
+      {
+         colors[i] = Serial.read();
+         states[i] = Serial.read();
+         
+         i++;
+      }
 
       return true;
     }
