@@ -7,8 +7,10 @@ char identifier = '*';
 int colors[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-boolean states[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+boolean states[64] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                         
+boolean stateChanged = true;
 
 /* Shiftbrite Properties
 _________________________________________________________________ */
@@ -32,6 +34,8 @@ void setup()
   Serial.begin(9600);
 
   setupPins();
+  
+  setLights(0);
 }
 
 /* Loop
@@ -39,8 +43,12 @@ void setup()
 
 void loop() 
 {
-  if(checkSerial())
+  checkSerial();
+  
+  if(stateChanged)
   {
+    stateChanged = false;
+    
     for(int i = 0; i < NUM_BOXES; i++)
     {
       SB_CommandMode = B01; // Write to current control registers
@@ -55,22 +63,36 @@ void loop()
     delayMicroseconds(15);
     digitalWrite(latchpin, LOW);
 
-    for(int i = 0; i < NUM_BOXES; i++)
+    for(int i = NUM_BOXES - 1; i >= 0; i--)
     {
       SB_CommandMode = B00; // Write to PWM control registers
-      SB_RedCommand = getRedFromInt(colors[i]); // red
-      SB_GreenCommand = getGreenFromInt(colors[i]); // green
-      SB_BlueCommand = getBlueFromInt(colors[i]); // blue
+      
+      if(states[i] == 1)
+      {
+        SB_RedCommand = 255; // red
+        SB_GreenCommand = 0; // green
+        SB_BlueCommand = 0; // blue
+        //SB_RedCommand = getRedFromInt(colors[i]); // red
+        //SB_GreenCommand = getGreenFromInt(colors[i]); // green
+        //SB_BlueCommand = getBlueFromInt(colors[i]); // blue
+      }
+      else
+      {
+        SB_RedCommand = 0; // red
+        SB_GreenCommand = 0; // green
+        SB_BlueCommand = 0; // blue
+      }
+     
       SB_SendPacket();
     }
 
     delayMicroseconds(15);
-    digitalWrite(latchpin,HIGH);
+    digitalWrite(latchpin, HIGH);
     delayMicroseconds(15);
-    digitalWrite(latchpin,LOW);
-
-    delay(100);
+    digitalWrite(latchpin, LOW);
   }
+  
+  delay(500);
 }
 
 /* Get colors
@@ -180,8 +202,8 @@ int getBlueFromInt(int c)
 
 boolean checkSerial()
 { 
-  if(Serial.available() >= 129) 
-  {
+  if(Serial.available() > 126) 
+  {  
     int firstByte = Serial.read();
 
     if(firstByte == identifier) 
@@ -190,11 +212,13 @@ boolean checkSerial()
       
       while(Serial.available() > 0)
       {
-         colors[i] = Serial.read();
          states[i] = Serial.read();
+         colors[i] = Serial.read();
          
          i++;
       }
+      
+      stateChanged = true;
 
       return true;
     }
@@ -236,5 +260,42 @@ void SB_SendPacket()
   //digitalWrite(latchpin,HIGH); // latch data into registers
   //delay(1); // adjustment may be necessary depending on chain length
   //digitalWrite(latchpin,LOW);
+}
+
+/* Test function
+ _________________________________________________________________ */
+ 
+void setLights(int color)
+{
+   for(int i = 0; i < NUM_BOXES; i++)
+    {
+      SB_CommandMode = B01; // Write to current control registers
+      SB_RedCommand = 127; // Full current
+      SB_GreenCommand = 127; // Full current
+      SB_BlueCommand = 127; // Full current
+      SB_SendPacket();
+    }
+
+    delayMicroseconds(15);
+    digitalWrite(latchpin, HIGH);
+    delayMicroseconds(15);
+    digitalWrite(latchpin, LOW);
+
+    for(int i = 0; i < NUM_BOXES; i++)
+    {
+      SB_CommandMode = B00; // Write to PWM control registers
+      SB_RedCommand = color; // red
+      SB_GreenCommand = 0; // green
+      SB_BlueCommand = 0; // blue
+      //SB_RedCommand = getRedFromInt(colors[i]); // red
+      //SB_GreenCommand = getGreenFromInt(colors[i]); // green
+      //SB_BlueCommand = getBlueFromInt(colors[i]); // blue
+      SB_SendPacket();
+    }
+
+    delayMicroseconds(15);
+    digitalWrite(latchpin,HIGH);
+    delayMicroseconds(15);
+    digitalWrite(latchpin,LOW); 
 }
 
